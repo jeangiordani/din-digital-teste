@@ -18,11 +18,9 @@ class UserController extends Controller
 
     public function create(Request $request)
     {
-
-
         $validator = Validator::make($request->all(), [
             "name" => "required|max:255|string",
-            "email" => "required|unique:users,email|max:255",
+            "email" => "required|unique:users,email|max:255|email",
             "password" => "required|min:6"
         ]);
 
