@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 
 class ProductController extends Controller
 {
@@ -21,7 +22,10 @@ class ProductController extends Controller
      */
     public function index()
     {
-        return response()->json($this->model->get(), 200);
+        // $this->model->get()
+        $user = auth()->user();
+
+        return response()->json($this->model->where('user_id', $user['id'])->get(), 200);
     }
 
     /**
@@ -32,7 +36,15 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = $this->validateAll($request->all());
+        $user = auth()->user();
+        $data = [
+            'name' => $request->get('name'),
+            'price' => $request->get('price'),
+            'weight' => $request->get('weight'),
+            'user_id' => $user['id']
+        ];
+
+        $validator = $this->validateAll($data);
 
         if ($validator->fails()) {
             $validator = $validator->errors()->first();
@@ -40,7 +52,7 @@ class ProductController extends Controller
             ['messages' => $validator]], 404);
         }
 
-        $product = $this->model->create($request->all());
+        $product = $this->model->create($data);
         return response()->json($product, 201);
     }
 
@@ -50,8 +62,15 @@ class ProductController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function show(Request $request, $id)
     {
+        $user = auth()->user();
+        $data = [
+            'name' => $request->get('name'),
+            'price' => $request->get('price'),
+            'weight' => $request->get('weight'),
+            'user_id' => $user['id']
+        ];
 
         $validator = Validator::make(['id' => $id], [
             'id' => 'required|numeric|exists:products,id',
@@ -66,7 +85,11 @@ class ProductController extends Controller
             ['messages' => $validator['id']]], 404);
         }
 
-        $product = $this->model->find($id);
+        $product = $this->model->where('user_id', $user['id'])->find($id);
+
+        if ($product == null) {
+            return response()->json(['message' => "Product not found"], 404);
+        }
         return response()->json($product, 200);
     }
 
@@ -84,7 +107,15 @@ class ProductController extends Controller
             return $result;
         }
 
-        $validator = $this->validateAll($request->all());
+        $user = auth()->user();
+        $data = [
+            'name' => $request->get('name'),
+            'price' => $request->get('price'),
+            'weight' => $request->get('weight'),
+            'user_id' => $user['id']
+        ];
+
+        $validator = $this->validateAll($data);
 
         if ($validator->fails()) {
             $validator = $validator->errors()->first();
@@ -92,7 +123,7 @@ class ProductController extends Controller
             ['messages' => $validator]], 400);
         }
 
-        $this->model->find($id)->update($request->all());
+        $this->model->where('user_id', $user['id'])->find($id)->update($data);
         return response()->json(['message' => 'Successfuly updated'], 200);
     }
 
@@ -108,8 +139,10 @@ class ProductController extends Controller
         if ($result) {
             return $result;
         }
-        $product = $this->model->find($id);
+        $user = auth()->user();
+        $product = $this->model->where('user_id', $user['id'])->find($id);
         $product->delete();
+
         return response()->json(['message' => 'Product deleted successfuly'], 204);
     }
 
